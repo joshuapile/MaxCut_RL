@@ -107,12 +107,12 @@ def load_graph_from_txt(txt_path: str = './data/gset_14.txt'):
         lines = file.readlines()
         lines = [[int(i1) for i1 in i0.split()] for i0 in lines]
     num_nodes, num_edges = lines[0]
-    graph = [(n0 - 1, n1 - 1, dt) for n0, n1, dt in lines[1:]]  # node_id “从1开始”改为“从0开始”
+    graph = [(n0 - 1, n1 - 1, dt) for n0, n1, dt in lines[1:]]  # Change "starting from 1" to "starting from 0"
     return graph, num_nodes, num_edges
 
 def get_adjacency_matrix(graph, num_nodes):
     adjacency_matrix = np.empty((num_nodes, num_nodes))
-    adjacency_matrix[:] = -1  # 选用-1而非0表示表示两个node之间没有edge相连，避免两个节点的距离为0时出现冲突
+    adjacency_matrix[:] = -1  # Use -1 instead of 0 to indicate that there is no edge between two nodes, to avoid conflicts when the distance between two nodes is 0.
     for n0, n1, dt in graph:
         adjacency_matrix[n0, n1] = dt
     return adjacency_matrix
