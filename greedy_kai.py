@@ -8,6 +8,7 @@ from util import read_nxgraph
 from util import obj_maxcut
 from util import transfer_nxgraph_to_weightmatrix
 
+
 # Define parameters for Q-learning
 ALPHA = 0.1  # Learning rate
 GAMMA = 0.9  # Discount factor
@@ -91,6 +92,7 @@ def greedy_maxcut_rl(init_solution: List[int], num_steps: int, graph: nx.Graph) 
 
     running_duration = time.time() - start_time
     print('Final Score:', curr_score)
+    print('Final Solution (Binary):', ''.join(map(str, curr_solution)))
     print('Running Duration:', running_duration)
     return curr_score, curr_solution, scores
 
