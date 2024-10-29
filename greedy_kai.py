@@ -10,9 +10,9 @@ from util import transfer_nxgraph_to_weightmatrix
 
 
 # Define parameters for Q-learning
-ALPHA = 0.1  # Learning rate
+ALPHA = 0.2  # Learning rate
 GAMMA = 0.9  # Discount factor
-EPSILON = 0.1  # Exploration rate
+EPSILON = 0.2  # Exploration rate
 
 # Q-table to store Q-values for state-action pairs
 Q_table = {}
