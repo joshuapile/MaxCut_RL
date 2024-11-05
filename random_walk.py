@@ -10,6 +10,12 @@ from util import obj_maxcut
 
 
 import sys
+'''
+Random Walk will randomly flip a number of of a current binary vector, then select the best progression
+to approach a solution. A neighbor function will define the solution-node's neighbors through flipping
+bits. Then, a select function will select a solution-node from the neighbor set that best fits the desired
+solution.
+'''
 
 def random_walk(init_solution: Union[List[int], np.array], num_steps: int, max_num_flips: int, graph: nx.Graph) -> (int, Union[List[int], np.array], List[int]):
     print('random_walk')
@@ -25,6 +31,7 @@ def random_walk(init_solution: Union[List[int], np.array], num_steps: int, max_n
         # select nodes randomly
         traversal_scores = []
         traversal_solutions = []
+        #Loop to alter neighbors to trend towards a final solution (Neighbor function)
         for j in range(1, max_num_flips + 1):
             selected_nodes = random.sample(nodes, j)
             new_solution = copy.deepcopy(curr_solution)
@@ -38,6 +45,7 @@ def random_walk(init_solution: Union[List[int], np.array], num_steps: int, max_n
         best_traversal_score = max(traversal_scores)
         index = traversal_scores.index(best_traversal_score)
         best_traversal_solution = traversal_solutions[index]
+        #Determine if the proposed new solution is an improvement from the current accepted solution (Select function)
         if len(scores) == 0 or (len(scores) >= 1 and best_traversal_score >= scores[-1]):
             curr_solution = best_traversal_solution
             scores.append(best_traversal_score)
@@ -60,6 +68,11 @@ if __name__ == '__main__':
     init_solution = list(np.random.randint(0, 2, graph.number_of_nodes()))
     rw_score, rw_solution, rw_scores = random_walk(init_solution=init_solution, num_steps=1000, max_num_flips=20, graph=graph)
 
-
+'''
+Random Walk suffers from noise due to statistical errors. Each step of random walk relies on a probablistic choice that will move
+the algorithm towards the final answer. The distribution of end steps from random walk results in a Gaussian distribution. The 
+standard deviation experienced by this distribution is sqrt{N}, where N is the number of steps taken. This highlights the chance
+of error to occur when performing Random Walk.
+'''
 
 
