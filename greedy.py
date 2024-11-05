@@ -1,5 +1,3 @@
-
-
 import copy
 import time
 from typing import List, Union
@@ -8,7 +6,12 @@ import networkx as nx
 from util import read_nxgraph
 from util import obj_maxcut
 from util import transfer_nxgraph_to_weightmatrix
-
+'''
+Greedy Algorithm for Max-Cut:
+The greedy algorithm iteratively seeks to maximize the cut by flipping nodes to increase the cut value.
+At each step, it evaluates each possible node flip and selects the one with the highest score improvement.
+Continues until no further improvements can be made.
+'''
 # init_solution is useless
 def greedy_maxcut(init_solution, num_steps: int, graph: nx.Graph) -> (int, Union[List[int], np.array], List[int]):
     print('greedy')
@@ -65,6 +68,10 @@ if __name__ == '__main__':
     init_solution = [0] * graph.number_of_nodes()
     gr_score, gr_solution, gr_scores = greedy_maxcut(init_solution, num_steps, graph)
 
+
+'''
+This strategy stops at a local maximum, which makes it unusable for complete graphs.
+'''
 
 
 
