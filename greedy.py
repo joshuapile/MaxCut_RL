@@ -70,7 +70,8 @@ if __name__ == '__main__':
 
 
 '''
-This strategy stops at a local maximum, which makes it unusable for complete graphs.
+This strategy stops at a local maximum, which makes it unusable for complete graphs. 
+The greedy solution gives us a good local solution that can be improved on for problems like Graph Max Cut.
 '''
 
 
