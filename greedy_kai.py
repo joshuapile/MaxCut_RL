@@ -99,8 +99,11 @@ def greedy_maxcut_rl(init_solution: List[int], num_steps: int, graph: nx.Graph) 
 # Example usage
 if __name__ == '__main__':
     # read data
+    # graph1 = read_as_networkx_graph('data/gset_14.txt')
     graph = read_nxgraph('./data/syn/syn_50_176.txt')
-    # run RL-based greedy algorithm
-    num_steps = 30
-    init_solution = [0] * graph.number_of_nodes()
-    rl_score, rl_solution, rl_scores = greedy_maxcut_rl(init_solution, num_steps, graph)
+
+
+    # run alg
+    # init_solution = [1, 0, 1, 0, 1]
+    init_solution = list(np.random.randint(0, 2, graph.number_of_nodes()))
+    rw_score, rw_solution, rw_scores = random_walk(init_solution=init_solution, num_steps=1000, max_num_flips=20, graph=graph)
