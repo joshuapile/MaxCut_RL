@@ -2,12 +2,12 @@ import random
 import numpy as np
 import networkx as nx
 import copy
-from typing import List, Union
+from typing import List, Dict, Tuple
 import time
+from collections import defaultdict
 from util import read_nxgraph
 from util import obj_maxcut
 from util import transfer_nxgraph_to_weightmatrix
-
 
 # Define parameters for Q-learning
 ALPHA = 0.2  # Learning rate
@@ -15,24 +15,32 @@ GAMMA = 0.9  # Discount factor
 EPSILON = 0.2  # Exploration rate
 
 # Q-table to store Q-values for state-action pairs
-Q_table = {}
+Q_table: Dict[Tuple[Tuple[int, ...], int], float] = defaultdict(float)
 
-def state_to_tuple(state: List[int]) -> tuple:
+def state_to_tuple(state: List[int]) -> Tuple[int, ...]:
+    """
+    Converts a list state to a tuple for use as a dictionary key.
+    """
     return tuple(state)
 
-def choose_action(state: List[int], graph: nx.Graph) -> int:
+def choose_action(state: List[int]) -> int:
     """
-    Choose an action based on an epsilon-greedy policy.
+    Choose an action (node to flip) based on an epsilon-greedy policy.
+    Returns the index of the node to flip.
     """
+    state_tuple = state_to_tuple(state)
+    num_nodes = len(state)
     if random.uniform(0, 1) < EPSILON:
-        # Exploration: choose a random action
-        return random.choice(range(len(state)))
+        # Exploration: choose a random node to flip
+        return random.choice(range(num_nodes))
     else:
-        # Exploitation: choose the best action based on Q-values
-        state_tuple = state_to_tuple(state)
-        if state_tuple not in Q_table:
-            Q_table[state_tuple] = np.zeros(len(state))
-        return int(np.argmax(Q_table[state_tuple]))
+        # Exploitation: choose the action that maximizes Q(s,a)
+        q_values = []
+        for action in range(num_nodes):
+            q_value = Q_table[(state_tuple, action)]
+            q_values.append(q_value)
+        # Choose the action with the highest Q-value
+        return int(np.argmax(q_values))
 
 def update_q_value(state: List[int], action: int, reward: float, next_state: List[int]):
     """
@@ -91,7 +99,6 @@ def greedy_maxcut_rl(init_solution: List[int], num_steps: int, graph: nx.Graph) 
     print('Running Duration:', running_duration)
     return curr_score, curr_solution, scores
 
-# Example usage
 if __name__ == '__main__':
     # Read data
     graph = read_nxgraph('./data/syn/syn_50_176.txt')
@@ -99,3 +106,5 @@ if __name__ == '__main__':
     num_steps = 30
     init_solution = [random.randint(0,1) for _ in range(graph.number_of_nodes())]
     rl_score, rl_solution, rl_scores = greedy_maxcut_rl(init_solution, num_steps, graph)
+
+
