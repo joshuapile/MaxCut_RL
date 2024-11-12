@@ -40,16 +40,14 @@ def update_q_value(state: List[int], action: int, reward: float, next_state: Lis
     """
     state_tuple = state_to_tuple(state)
     next_state_tuple = state_to_tuple(next_state)
-
-    if state_tuple not in Q_table:
-        Q_table[state_tuple] = np.zeros(len(state))
-    if next_state_tuple not in Q_table:
-        Q_table[next_state_tuple] = np.zeros(len(next_state))
-
-    best_next_action = np.argmax(Q_table[next_state_tuple])
-    td_target = reward + GAMMA * Q_table[next_state_tuple][best_next_action]
-    td_error = td_target - Q_table[state_tuple][action]
-    Q_table[state_tuple][action] += ALPHA * td_error
+    
+    # Get the current Q-value
+    current_q = Q_table[(state_tuple, action)]
+    # Find the maximum Q-value for the next state over all possible actions
+    num_nodes = len(state)
+    max_next_q = max([Q_table[(next_state_tuple, a)] for a in range(num_nodes)])
+    # Update the Q-value
+    Q_table[(state_tuple, action)] = current_q + ALPHA * (reward + GAMMA * max_next_q - current_q)
 
 def greedy_maxcut_rl(init_solution: List[int], num_steps: int, graph: nx.Graph) -> Tuple[int, List[int], List[int]]:
     """
