@@ -51,46 +51,43 @@ def update_q_value(state: List[int], action: int, reward: float, next_state: Lis
     td_error = td_target - Q_table[state_tuple][action]
     Q_table[state_tuple][action] += ALPHA * td_error
 
-def greedy_maxcut_rl(init_solution: List[int], num_steps: int, graph: nx.Graph) -> (int, List[int], List[int]):
+def greedy_maxcut_rl(init_solution: List[int], num_steps: int, graph: nx.Graph) -> Tuple[int, List[int], List[int]]:
+    """
+    RL-based Greedy Max-Cut algorithm.
+    """
     print('RL-based Greedy Max-Cut')
     start_time = time.time()
-    num_nodes = int(graph.number_of_nodes())
-    nodes = list(range(num_nodes))
+    num_nodes = graph.number_of_nodes()
     
     curr_solution = copy.deepcopy(init_solution)
-    curr_score: int = obj_maxcut(curr_solution, graph)
+    curr_score = obj_maxcut(curr_solution, graph)
     init_score = curr_score
-    scores = []
-
+    scores = [curr_score]
+    
     for iteration in range(num_steps):
         # Choose an action (node to flip) using epsilon-greedy policy
-        action = choose_action(curr_solution, graph)
-
+        action = choose_action(curr_solution)
+        
         # Calculate new solution by flipping the chosen node
         new_solution = copy.deepcopy(curr_solution)
         new_solution[action] = (new_solution[action] + 1) % 2
         new_score = obj_maxcut(new_solution, graph)
-
+        
         # Calculate reward as the change in score
         reward = new_score - curr_score
-
+        
         # Update Q-value
         update_q_value(curr_solution, action, reward, new_solution)
-
-        # Update current solution if the new score is better
-        if new_score > curr_score:
-            curr_score = new_score
-            curr_solution = new_solution
-            scores.append(curr_score)
-        else:
-            # Even if the new solution is not better, we move to it sometimes to encourage exploration
-            if random.uniform(0, 1) < EPSILON:
-                curr_score = new_score
-                curr_solution = new_solution
-
-        print(f"Iteration: {iteration}, Score: {curr_score}")
-
+        
+        # Update current solution
+        curr_solution = new_solution
+        curr_score = new_score
+        scores.append(curr_score)
+        
+        print(f"Iteration: {iteration+1}, Score: {curr_score}")
+    
     running_duration = time.time() - start_time
+    print('Initial Score:', init_score)
     print('Final Score:', curr_score)
     print('Final Solution (Binary):', ''.join(map(str, curr_solution)))
     print('Running Duration:', running_duration)
@@ -98,12 +95,9 @@ def greedy_maxcut_rl(init_solution: List[int], num_steps: int, graph: nx.Graph) 
 
 # Example usage
 if __name__ == '__main__':
-    # read data
-    # graph1 = read_as_networkx_graph('data/gset_14.txt')
+    # Read data
     graph = read_nxgraph('./data/syn/syn_50_176.txt')
-
-
-    # run alg
-    # init_solution = [1, 0, 1, 0, 1]
-    init_solution = list(np.random.randint(0, 2, graph.number_of_nodes()))
-    rw_score, rw_solution, rw_scores = random_walk(init_solution=init_solution, num_steps=1000, max_num_flips=20, graph=graph)
+    # Run RL-based greedy algorithm
+    num_steps = 30
+    init_solution = [random.randint(0,1) for _ in range(graph.number_of_nodes())]
+    rl_score, rl_solution, rl_scores = greedy_maxcut_rl(init_solution, num_steps, graph)
