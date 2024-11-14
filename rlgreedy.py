@@ -101,9 +101,9 @@ def greedy_maxcut_rl(init_solution: List[int], num_steps: int, graph: nx.Graph) 
 
 if __name__ == '__main__':
     # Read data
-    graph = read_nxgraph('./data/syn/syn_50_176.txt')
+    graph = read_nxgraph('./data/gset/gset_14.txt')
     # Run RL-based greedy algorithm
-    num_steps = 30
+    num_steps = 100
     init_solution = [random.randint(0,1) for _ in range(graph.number_of_nodes())]
     rl_score, rl_solution, rl_scores = greedy_maxcut_rl(init_solution, num_steps, graph)
 
