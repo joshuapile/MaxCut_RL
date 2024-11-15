@@ -55,7 +55,7 @@ def greedy_maxcut(init_solution, num_steps: int, graph: nx.Graph) -> (int, Union
 
 if __name__ == '__main__':
     # read data
-    graph = read_nxgraph('./data/syn/syn_50_176.txt')
+    graph = read_nxgraph('./data/gset/gset_15.txt')
     weightmatrix = transfer_nxgraph_to_weightmatrix(graph)
     # run alg
     num_steps = 30
