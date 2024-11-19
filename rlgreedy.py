@@ -20,7 +20,7 @@ GAMMA = 0.9          # Discount factor
 EPSILON_START = 1.0  # Starting epsilon for exploration
 EPSILON_END = 0.01   # Minimum epsilon
 EPSILON_DECAY = 0.995  # Epsilon decay rate per episode
-LR = 0.001           # Learning rate for the optimizer
+LR = 0.01            # Adjusted learning rate for the optimizer
 BATCH_SIZE = 64      # Batch size for experience replay
 MEMORY_SIZE = 10000  # Maximum size of the replay buffer
 TARGET_UPDATE_FREQ = 10  # Frequency to update the target network
@@ -28,6 +28,7 @@ TARGET_UPDATE_FREQ = 10  # Frequency to update the target network
 # Experience Replay Memory
 from collections import deque
 memory = deque(maxlen=MEMORY_SIZE)
+
 
 # Define the Q-Network
 class QNetwork(nn.Module):
@@ -87,12 +88,13 @@ def optimize_model(q_network, target_network, optimizer, loss_fn):
     dones_tensor = torch.FloatTensor(dones).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
 
     # Compute Q(s,a)
-    q_values = q_network(states_tensor).gather(1, actions_tensor)  # Shape: [BATCH_SIZE, 1]
+    q_values_all = q_network(states_tensor)  # Shape: [BATCH_SIZE, 2]
+    q_values = q_values_all.gather(1, actions_tensor)  # Shape: [BATCH_SIZE, 1]
 
     # Compute target Q-values
     with torch.no_grad():
-        next_q_values = target_network(next_states_tensor)
-        max_next_q_values, _ = torch.max(next_q_values, dim=1, keepdim=True)
+        next_q_values_all = target_network(next_states_tensor)  # Shape: [BATCH_SIZE, 2]
+        max_next_q_values, _ = torch.max(next_q_values_all, dim=1, keepdim=True)  # Shape: [BATCH_SIZE, 1]
         target_q_values = rewards_tensor + GAMMA * max_next_q_values * (1 - dones_tensor)
 
     # Compute loss
@@ -103,7 +105,8 @@ def optimize_model(q_network, target_network, optimizer, loss_fn):
     loss.backward()
     optimizer.step()
 
-def greedy_maxcut_dqn(init_solution: List[int], num_episodes: int, num_steps: int, graph: nx.Graph) -> Tuple[int, List[int], List[float]]:
+
+def greedy_maxcut_dqn(init_solution: List[int], num_episodes: int, graph: nx.Graph) -> Tuple[int, List[int], List[float]]:
     """
     Deep Q-Learning based Max-Cut algorithm.
     """
@@ -112,8 +115,9 @@ def greedy_maxcut_dqn(init_solution: List[int], num_episodes: int, num_steps: in
     num_nodes = graph.number_of_nodes()
 
     # Initialize networks and optimizer
-    q_network = QNetwork(num_nodes)
-    target_network = QNetwork(num_nodes)
+    input_size = 4  # Number of node features
+    q_network = QNetwork(input_size)
+    target_network = QNetwork(input_size)
     target_network.load_state_dict(q_network.state_dict())  # Initialize target network
     optimizer = optim.Adam(q_network.parameters(), lr=LR)
     loss_fn = nn.MSELoss()
@@ -127,32 +131,37 @@ def greedy_maxcut_dqn(init_solution: List[int], num_episodes: int, num_steps: in
         curr_solution = copy.deepcopy(init_solution)
         curr_score = obj_maxcut(curr_solution, graph)
 
-        for step in range(num_steps):
-            # Choose an action using epsilon-greedy policy
-            action = choose_action(curr_solution, epsilon, num_nodes, q_network)
+        for node in range(num_nodes):
+            node_features = get_node_features(node, curr_solution, graph)
+            action = choose_action(node_features, epsilon, q_network)
 
-            # Calculate new solution by flipping the chosen node
-            new_solution = copy.deepcopy(curr_solution)
-            new_solution[action] = (new_solution[action] + 1) % 2
-            new_score = obj_maxcut(new_solution, graph)
+            # Apply action
+            if action == 1:  # Flip node
+                new_solution = copy.deepcopy(curr_solution)
+                new_solution[node] = 1 - new_solution[node]  # Flip node
+                new_score = obj_maxcut(new_solution, graph)
+                reward = new_score - curr_score
+                done = False  # No termination condition
 
-            # Calculate reward as the change in score
-            reward = new_score - curr_score
+                # Get next node features
+                next_node_features = get_node_features(node, new_solution, graph)
 
-            # Define 'done' if you have a termination condition
-            done = False  # For Max-Cut, episodes can be of fixed length
+                # Store the transition
+                memory.append((node_features, action, reward, next_node_features, done))
 
-            # Store the transition in memory
-            memory.append((curr_solution, action, reward, new_solution, done))
+                # Update current solution and score
+                curr_solution = new_solution
+                curr_score = new_score
+            else:  # Do not flip
+                reward = 0
+                done = False
+                next_node_features = node_features  # No change in state
 
-            # Move to the next state
-            curr_solution = new_solution
-            curr_score = new_score
+                # Store the transition
+                memory.append((node_features, action, reward, next_node_features, done))
 
-            # Perform one step of the optimization
+            # Perform optimization
             optimize_model(q_network, target_network, optimizer, loss_fn)
-
-            # Optionally, you can break the loop if done is True
 
         # Update target network periodically
         if episode % TARGET_UPDATE_FREQ == 0:
@@ -176,16 +185,16 @@ def greedy_maxcut_dqn(init_solution: List[int], num_episodes: int, num_steps: in
     print('Running Duration:', running_duration)
     return max_score, best_solution, scores
 
+
 if __name__ == '__main__':
     # Read data
-    graph = read_nxgraph('./data/gset/gset_14.txt')
+    graph = read_nxgraph('./data/syn/syn_50.txt')
 
     # Parameters
     num_episodes = 50
-    num_steps = 100  # Number of steps per episode
 
     # Initialize solution randomly
-    init_solution = [random.randint(0,1) for _ in range(graph.number_of_nodes())]
+    init_solution = [random.randint(0, 1) for _ in range(graph.number_of_nodes())]
 
     # Run DQN-based Max-Cut algorithm
-    max_score, best_solution, scores = greedy_maxcut_dqn(init_solution, num_episodes, num_steps, graph)
+    max_score, best_solution, scores = greedy_maxcut_dqn(init_solution, num_episodes, graph)
