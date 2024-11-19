@@ -31,30 +31,41 @@ memory = deque(maxlen=MEMORY_SIZE)
 
 # Define the Q-Network
 class QNetwork(nn.Module):
-    def __init__(self, num_nodes, hidden_size=128):
+    def __init__(self, input_size, hidden_size=64):
         super(QNetwork, self).__init__()
-        self.fc1 = nn.Linear(num_nodes, hidden_size)
+        self.fc1 = nn.Linear(input_size, hidden_size)
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, num_nodes)  # Output Q-values for all actions
+        self.fc2 = nn.Linear(hidden_size, 2)  # Output Q-values for two actions
 
     def forward(self, x):
         x = self.relu(self.fc1(x))
-        return self.fc2(x)
+        return self.fc2(x)  # Output shape: [batch_size, 2]
 
-def choose_action(state: List[int], epsilon: float, num_nodes: int, q_network: QNetwork) -> int:
-    """
-    Choose an action (node to flip) based on an epsilon-greedy policy.
-    Returns the index of the node to flip.
-    """
+
+def get_node_features(node, solution, graph):
+    neighbors = list(graph.neighbors(node))
+    current_partition = solution[node]
+    opposite_partition = 1 - current_partition
+    intra_weight = sum(float(graph[node][nbr].get('weight', 1.0)) for nbr in neighbors if solution[nbr] == current_partition)
+    inter_weight = sum(float(graph[node][nbr].get('weight', 1.0)) for nbr in neighbors if solution[nbr] == opposite_partition)
+    degree = graph.degree[node]
+    # Potential gain in cut value if node is flipped
+    potential_gain = inter_weight - intra_weight
+    return [degree, intra_weight, inter_weight, potential_gain]
+
+
+
+def choose_action(node_features, epsilon, q_network):
     if random.uniform(0, 1) < epsilon:
-        # Exploration: choose a random node to flip
-        return random.choice(range(num_nodes))
+        # Exploration: randomly decide to flip or not flip
+        return random.choice([0, 1])  # 0: Do not flip, 1: Flip
     else:
-        # Exploitation: choose the action that maximizes Q(s,a)
-        state_tensor = torch.FloatTensor(state).unsqueeze(0)  # Shape: [1, num_nodes]
-        q_values = q_network(state_tensor)  # Shape: [1, num_nodes]
-        action = torch.argmax(q_values).item()
+        # Exploitation: choose action with highest Q-value
+        features_tensor = torch.FloatTensor(node_features).unsqueeze(0)  # Shape: [1, input_size]
+        q_values = q_network(features_tensor)  # Shape: [1, 2]
+        action = torch.argmax(q_values, dim=1).item()
         return action
+
 
 def optimize_model(q_network, target_network, optimizer, loss_fn):
     """
@@ -69,10 +80,10 @@ def optimize_model(q_network, target_network, optimizer, loss_fn):
     states, actions, rewards, next_states, dones = batch
 
     # Convert to tensors
-    states_tensor = torch.FloatTensor(states)          # Shape: [BATCH_SIZE, num_nodes]
+    states_tensor = torch.FloatTensor(states)          # Shape: [BATCH_SIZE, input_size]
     actions_tensor = torch.LongTensor(actions).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
     rewards_tensor = torch.FloatTensor(rewards).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
-    next_states_tensor = torch.FloatTensor(next_states)  # Shape: [BATCH_SIZE, num_nodes]
+    next_states_tensor = torch.FloatTensor(next_states)  # Shape: [BATCH_SIZE, input_size]
     dones_tensor = torch.FloatTensor(dones).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
 
     # Compute Q(s,a)
