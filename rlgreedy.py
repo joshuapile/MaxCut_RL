@@ -15,6 +15,9 @@ random.seed(42)
 np.random.seed(42)
 torch.manual_seed(42)
 
+# Device configuration for GPU support
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Define parameters for Deep Q-Learning
 GAMMA = 0.9          # Discount factor
 EPSILON_START = 1.0  # Starting epsilon for exploration
@@ -55,14 +58,13 @@ def get_node_features(node, solution, graph):
     return [degree, intra_weight, inter_weight, potential_gain]
 
 
-
 def choose_action(node_features, epsilon, q_network):
     if random.uniform(0, 1) < epsilon:
         # Exploration: randomly decide to flip or not flip
         return random.choice([0, 1])  # 0: Do not flip, 1: Flip
     else:
         # Exploitation: choose action with highest Q-value
-        features_tensor = torch.FloatTensor(node_features).unsqueeze(0)  # Shape: [1, input_size]
+        features_tensor = torch.tensor(node_features, dtype=torch.float32, device=device).unsqueeze(0)  # Shape: [1, input_size]
         q_values = q_network(features_tensor)  # Shape: [1, 2]
         action = torch.argmax(q_values, dim=1).item()
         return action
@@ -81,11 +83,11 @@ def optimize_model(q_network, target_network, optimizer, loss_fn):
     states, actions, rewards, next_states, dones = batch
 
     # Convert to tensors
-    states_tensor = torch.FloatTensor(states)          # Shape: [BATCH_SIZE, input_size]
-    actions_tensor = torch.LongTensor(actions).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
-    rewards_tensor = torch.FloatTensor(rewards).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
-    next_states_tensor = torch.FloatTensor(next_states)  # Shape: [BATCH_SIZE, input_size]
-    dones_tensor = torch.FloatTensor(dones).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
+    states_tensor = torch.tensor(states, dtype=torch.float32, device=device)          # Shape: [BATCH_SIZE, input_size]
+    actions_tensor = torch.tensor(actions, dtype=torch.long, device=device).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
+    rewards_tensor = torch.tensor(rewards, dtype=torch.float32, device=device).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
+    next_states_tensor = torch.tensor(next_states, dtype=torch.float32, device=device)  # Shape: [BATCH_SIZE, input_size]
+    dones_tensor = torch.tensor(dones, dtype=torch.float32, device=device).unsqueeze(1)  # Shape: [BATCH_SIZE, 1]
 
     # Compute Q(s,a)
     q_values_all = q_network(states_tensor)  # Shape: [BATCH_SIZE, 2]
@@ -116,8 +118,8 @@ def greedy_maxcut_dqn(init_solution: List[int], num_episodes: int, graph: nx.Gra
 
     # Initialize networks and optimizer
     input_size = 4  # Number of node features
-    q_network = QNetwork(input_size)
-    target_network = QNetwork(input_size)
+    q_network = QNetwork(input_size).to(device)
+    target_network = QNetwork(input_size).to(device)
     target_network.load_state_dict(q_network.state_dict())  # Initialize target network
     optimizer = optim.Adam(q_network.parameters(), lr=LR)
     loss_fn = nn.MSELoss()
